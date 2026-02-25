@@ -1,0 +1,26 @@
+# Secrets
+.env
+
+# Données générées
+data/
+
+# Frontend
+node_modules/
+.next/
+frontend/node_modules/
+frontend/.next/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
