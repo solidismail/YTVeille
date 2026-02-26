@@ -24,6 +24,7 @@ export interface VideoList {
 }
 
 export interface Filters {
+    q?: string;
     min_score?: number;
     topic?: string;
     days?: number;
@@ -33,6 +34,7 @@ export interface Filters {
 
 export async function fetchVideos(filters: Filters = {}): Promise<VideoList> {
     const params = new URLSearchParams();
+    if (filters.q) params.set("q", filters.q);
     if (filters.min_score !== undefined) params.set("min_score", String(filters.min_score));
     if (filters.topic) params.set("topic", filters.topic);
     if (filters.days) params.set("days", String(filters.days));

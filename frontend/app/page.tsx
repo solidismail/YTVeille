@@ -20,6 +20,7 @@ export default function HomePage() {
     const [page, setPage] = useState(1);
     const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
     const [search, setSearch] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
     const [loading, setLoading] = useState(true);
     const [initialQueries, setInitialQueries] = useState<string[]>([]);
     const [launching, setLaunching] = useState(false);
@@ -52,10 +53,11 @@ export default function HomePage() {
     });
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    const loadVideos = useCallback(async (f: FilterState, p: number) => {
+    const loadVideos = useCallback(async (f: FilterState, p: number, q: string) => {
         setLoading(true);
         try {
             const params: Filters = {
+                q: q || undefined,
                 min_score: f.min_score,
                 days: f.days,
                 page: p,
@@ -77,10 +79,19 @@ export default function HomePage() {
         fetchStatus().then(setStatus).catch(() => {});
     }, []);
 
-    // Charger vidéos à chaque changement de filtres / page
+    // Debounce de la recherche texte (300 ms)
     useEffect(() => {
-        loadVideos(filters, page);
-    }, [filters, page, loadVideos]);
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search);
+            setPage(1);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [search]);
+
+    // Charger vidéos à chaque changement de filtres / page / recherche
+    useEffect(() => {
+        loadVideos(filters, page, debouncedSearch);
+    }, [filters, page, debouncedSearch, loadVideos]);
 
     const handleFilterChange = (partial: Partial<FilterState>) => {
         setFilters((prev) => ({ ...prev, ...partial }));
@@ -107,7 +118,7 @@ export default function HomePage() {
                         pollRef.current = null;
                         setLaunching(false);
                         setPage(1);
-                        loadVideos(filters, 1);
+                        loadVideos(filters, 1, debouncedSearch);
                     }
                 } catch {
                     clearInterval(pollRef.current!);
@@ -125,19 +136,9 @@ export default function HomePage() {
 
     const totalPages = Math.ceil(total / PAGE_SIZE);
 
-    const q = search.toLowerCase().trim();
-
-    // Texte saisi → filtre texte seul (ignore les chips)
-    // Pas de texte + chips actives → filtre par chips
-    // Rien → tout afficher
-    const displayedVideos = q
-        ? videos.filter(
-              (v) =>
-                  v.title.toLowerCase().includes(q) ||
-                  v.channel.toLowerCase().includes(q) ||
-                  (v.topics ?? []).some((t) => t.toLowerCase().includes(q))
-          )
-        : activeQueryFilters.length > 0
+    // Le filtre texte est géré côté backend (paramètre q).
+    // Les chips de requête restent filtrées côté client sur la page courante.
+    const displayedVideos = activeQueryFilters.length > 0
         ? videos.filter((v) =>
               activeQueryFilters.some((aq) =>
                   v.title.toLowerCase().includes(aq.toLowerCase())

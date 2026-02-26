@@ -67,6 +67,7 @@ def _run_refresh() -> RefreshResult:
 
 @app.get("/api/videos", response_model=VideoList)
 def list_videos(
+    q: Optional[str] = Query(None),
     min_score: float = Query(0.0, ge=0, le=100),
     topic: Optional[str] = Query(None),
     days: int = Query(30, ge=1, le=90),
@@ -75,6 +76,16 @@ def list_videos(
 ):
     """Liste paginée des vidéos avec filtres."""
     all_videos = load_videos()
+
+    # Filtre texte (titre, chaîne, tags YouTube)
+    if q:
+        q_lower = q.lower()
+        all_videos = [
+            v for v in all_videos
+            if q_lower in v.get("title", "").lower()
+            or q_lower in v.get("channel", "").lower()
+            or any(q_lower in t.lower() for t in v.get("tags", []))
+        ]
 
     # Filtre score
     filtered = [v for v in all_videos if v.get("score", 0) >= min_score]
