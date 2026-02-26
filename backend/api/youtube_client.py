@@ -110,9 +110,19 @@ async def get_video_details(video_ids: list[str], client: httpx.AsyncClient, api
         duration_s = _parse_duration(details.get("duration", ""))
         description = snippet.get("description", "")
 
+        # Exclure les vidéos manifestement non-françaises :
+        # langue audio explicitement non-fr ET titre sans caractères français typiques
+        audio_lang = (snippet.get("defaultAudioLanguage") or "").lower()
+        default_lang = (snippet.get("defaultLanguage") or "").lower()
+        title = snippet.get("title", "")
+        if (audio_lang and not audio_lang.startswith("fr")
+                and not default_lang.startswith("fr")):
+            if not re.search(r"[éèêëàâùûîïôçœæ]", title, re.IGNORECASE):
+                continue
+
         videos.append({
             "id": item["id"],
-            "title": snippet.get("title", ""),
+            "title": title,
             "channel": snippet.get("channelTitle", ""),
             "published_at": snippet.get("publishedAt", ""),
             "duration_seconds": duration_s,
