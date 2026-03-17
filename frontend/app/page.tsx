@@ -53,7 +53,7 @@ export default function HomePage() {
     });
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    const loadVideos = useCallback(async (f: FilterState, p: number, q: string) => {
+    const loadVideos = useCallback(async (f: FilterState, p: number, q: string, sqFilters: string[]) => {
         setLoading(true);
         try {
             const params: Filters = {
@@ -62,6 +62,7 @@ export default function HomePage() {
                 days: f.days,
                 page: p,
                 page_size: PAGE_SIZE,
+                source_queries: sqFilters.length > 0 ? sqFilters : undefined,
             };
             const result = await fetchVideos(params);
             setVideos(result.items);
@@ -88,10 +89,10 @@ export default function HomePage() {
         return () => clearTimeout(timer);
     }, [search]);
 
-    // Charger vidéos à chaque changement de filtres / page / recherche
+    // Charger vidéos à chaque changement de filtres / page / recherche / chips
     useEffect(() => {
-        loadVideos(filters, page, debouncedSearch);
-    }, [filters, page, debouncedSearch, loadVideos]);
+        loadVideos(filters, page, debouncedSearch, activeQueryFilters);
+    }, [filters, page, debouncedSearch, activeQueryFilters, loadVideos]);
 
     const handleFilterChange = (partial: Partial<FilterState>) => {
         setFilters((prev) => ({ ...prev, ...partial }));
@@ -102,6 +103,7 @@ export default function HomePage() {
         setActiveQueryFilters((prev) =>
             prev.includes(q) ? prev.filter((x) => x !== q) : [...prev, q]
         );
+        setPage(1);
     };
 
     const handleLaunch = async (queries: string[]) => {
@@ -118,7 +120,7 @@ export default function HomePage() {
                         pollRef.current = null;
                         setLaunching(false);
                         setPage(1);
-                        loadVideos(filters, 1, debouncedSearch);
+                        loadVideos(filters, 1, debouncedSearch, activeQueryFilters);
                     }
                 } catch {
                     clearInterval(pollRef.current!);
@@ -136,15 +138,8 @@ export default function HomePage() {
 
     const totalPages = Math.ceil(total / PAGE_SIZE);
 
-    // Le filtre texte est géré côté backend (paramètre q).
-    // Les chips de requête restent filtrées côté client sur la page courante.
-    const displayedVideos = activeQueryFilters.length > 0
-        ? videos.filter((v) =>
-              activeQueryFilters.some((aq) =>
-                  v.title.toLowerCase().includes(aq.toLowerCase())
-              )
-          )
-        : videos;
+    // Tous les filtres (texte + chips) sont gérés côté backend.
+    const displayedVideos = videos;
 
     return (
         <div className="app-shell">
@@ -159,7 +154,7 @@ export default function HomePage() {
             <main className="main">
                 <div className="main__header">
                     <h1 className="main__title">▶ YTVeille</h1>
-                    <span className="main__count">{displayedVideos.length} vidéo{displayedVideos.length > 1 ? "s" : ""}</span>
+                    <span className="main__count">{total} vidéo{total > 1 ? "s" : ""}</span>
                 </div>
 
                 {launching && (

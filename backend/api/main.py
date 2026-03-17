@@ -70,6 +70,7 @@ def list_videos(
     q: Optional[str] = Query(None),
     min_score: float = Query(0.0, ge=0, le=100),
     topic: Optional[str] = Query(None),
+    source_query: list[str] = Query(default=[]),
     days: int = Query(30, ge=1, le=90),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -85,6 +86,13 @@ def list_videos(
             if q_lower in v.get("title", "").lower()
             or q_lower in v.get("channel", "").lower()
             or any(q_lower in t.lower() for t in v.get("tags", []))
+        ]
+
+    # Filtre par requête source (OR entre les requêtes sélectionnées)
+    if source_query:
+        all_videos = [
+            v for v in all_videos
+            if any(sq in v.get("source_queries", []) for sq in source_query)
         ]
 
     # Filtre score

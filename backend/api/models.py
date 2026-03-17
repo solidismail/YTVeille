@@ -17,6 +17,7 @@ class Video(BaseModel):
     has_chapters: bool = False
     score: float = 0.0
     topics: List[str] = []
+    source_queries: List[str] = []
 
 
 class VideoList(BaseModel):

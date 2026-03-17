@@ -14,6 +14,7 @@ export interface Video {
     has_chapters: boolean;
     score: number;
     topics: string[];
+    source_queries: string[];
 }
 
 export interface VideoList {
@@ -27,6 +28,7 @@ export interface Filters {
     q?: string;
     min_score?: number;
     topic?: string;
+    source_queries?: string[];
     days?: number;
     page?: number;
     page_size?: number;
@@ -37,6 +39,7 @@ export async function fetchVideos(filters: Filters = {}): Promise<VideoList> {
     if (filters.q) params.set("q", filters.q);
     if (filters.min_score !== undefined) params.set("min_score", String(filters.min_score));
     if (filters.topic) params.set("topic", filters.topic);
+    if (filters.source_queries?.length) filters.source_queries.forEach((sq) => params.append("source_query", sq));
     if (filters.days) params.set("days", String(filters.days));
     if (filters.page) params.set("page", String(filters.page));
     if (filters.page_size) params.set("page_size", String(filters.page_size));
